@@ -150,6 +150,11 @@ class BandabouRainDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return (self.data or {}).get("daily", {})
 
     @property
+    def today_date(self) -> date:
+        """Return today's date in Curacao."""
+        return datetime.now(LOCAL_TZ).date()
+
+    @property
     def current_precipitation(self) -> float:
         """Return current precipitation in millimeters."""
         return _as_float(self.current.get("precipitation"))
@@ -208,7 +213,7 @@ class BandabouRainDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         precipitation = daily.get("precipitation_sum", [])
         rain = daily.get("rain_sum", [])
         showers = daily.get("showers_sum", [])
-        today = datetime.now(LOCAL_TZ).date()
+        today = self.today_date
 
         points: list[dict[str, Any]] = []
         for index, day_value in enumerate(times):

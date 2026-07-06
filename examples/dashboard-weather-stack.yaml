@@ -1,0 +1,17 @@
+type: vertical-stack
+cards:
+  - type: weather-forecast
+    entity: weather.bandabou_rain
+    name: Bandabou
+    show_current: true
+    show_forecast: true
+    forecast_type: hourly
+    round_temperature: true
+  - type: tile
+    entity: sensor.bandabou_rain_dry_days
+    name: Dry days
+    icon: mdi:white-balance-sunny
+  - type: tile
+    entity: sensor.bandabou_rain_rain_next_3_hours
+    name: Rain next 3 hours
+    icon: mdi:weather-pouring

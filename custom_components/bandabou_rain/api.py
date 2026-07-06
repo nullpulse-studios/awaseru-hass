@@ -31,11 +31,23 @@ class OpenMeteoClient:
         params = {
             "latitude": self._latitude,
             "longitude": self._longitude,
-            "current": "precipitation,rain,showers,weather_code",
-            "hourly": "precipitation,precipitation_probability,rain,showers",
-            "daily": "precipitation_sum,rain_sum,showers_sum",
+            "current": (
+                "temperature_2m,relative_humidity_2m,apparent_temperature,"
+                "precipitation,rain,showers,weather_code,cloud_cover,"
+                "wind_speed_10m,wind_direction_10m,wind_gusts_10m"
+            ),
+            "hourly": (
+                "temperature_2m,precipitation,precipitation_probability,"
+                "rain,showers,weather_code,cloud_cover,wind_speed_10m,"
+                "wind_direction_10m,wind_gusts_10m"
+            ),
+            "daily": (
+                "weather_code,temperature_2m_max,temperature_2m_min,"
+                "precipitation_sum,rain_sum,showers_sum,"
+                "precipitation_probability_max"
+            ),
             "forecast_hours": 24,
-            "forecast_days": 1,
+            "forecast_days": 7,
             "past_days": 31,
             "timezone": "America/Curacao",
             "timeformat": "iso8601",
