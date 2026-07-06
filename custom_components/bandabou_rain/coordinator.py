@@ -15,19 +15,29 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .api import OpenMeteoClient, OpenMeteoError
 from .const import (
     CONF_DRY_DAY_THRESHOLD_MM,
+    CONF_DRY_NOTIFY_COOLDOWN_MINUTES,
+    CONF_DRY_NOTIFY_MESSAGE,
+    CONF_DRY_NOTIFY_TITLE,
+    CONF_DRY_STREAK_THRESHOLD_DAYS,
     CONF_NOTIFY_COOLDOWN_MINUTES,
     CONF_NOTIFY_MESSAGE,
+    CONF_NOTIFY_ON_DRY_STREAK,
     CONF_NOTIFY_ON_RAIN,
     CONF_NOTIFY_SERVICE,
     CONF_NOTIFY_SERVICES,
     CONF_NOTIFY_TITLE,
     CONF_RAIN_THRESHOLD_MM,
     DEFAULT_DRY_DAY_THRESHOLD_MM,
+    DEFAULT_DRY_NOTIFY_COOLDOWN_MINUTES,
+    DEFAULT_DRY_NOTIFY_MESSAGE,
+    DEFAULT_DRY_NOTIFY_TITLE,
+    DEFAULT_DRY_STREAK_THRESHOLD_DAYS,
     DEFAULT_LATITUDE,
     DEFAULT_LONGITUDE,
     DEFAULT_NAME,
     DEFAULT_NOTIFY_COOLDOWN_MINUTES,
     DEFAULT_NOTIFY_MESSAGE,
+    DEFAULT_NOTIFY_ON_DRY_STREAK,
     DEFAULT_NOTIFY_ON_RAIN,
     DEFAULT_NOTIFY_SERVICE,
     DEFAULT_NOTIFY_SERVICES,
@@ -89,6 +99,8 @@ class BandabouRainDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._client = OpenMeteoClient(hass, self.latitude, self.longitude)
         self._last_is_raining: bool | None = None
         self._last_notification_at: datetime | None = None
+        self._last_dry_notification_at: datetime | None = None
+        self._dry_streak_notification_sent = False
 
         super().__init__(
             hass,
@@ -167,6 +179,44 @@ class BandabouRainDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return _as_float(
             self.config.get(CONF_NOTIFY_COOLDOWN_MINUTES),
             DEFAULT_NOTIFY_COOLDOWN_MINUTES,
+        )
+
+    @property
+    def notify_on_dry_streak(self) -> bool:
+        """Return whether dry-streak notifications are enabled."""
+        return bool(
+            self.config.get(CONF_NOTIFY_ON_DRY_STREAK, DEFAULT_NOTIFY_ON_DRY_STREAK)
+        )
+
+    @property
+    def dry_streak_threshold_days(self) -> int:
+        """Return configured dry-streak notification threshold."""
+        return max(
+            1,
+            round(
+                _as_float(
+                    self.config.get(CONF_DRY_STREAK_THRESHOLD_DAYS),
+                    DEFAULT_DRY_STREAK_THRESHOLD_DAYS,
+                )
+            ),
+        )
+
+    @property
+    def dry_notify_title(self) -> str:
+        """Return the configured dry-streak notification title."""
+        return str(self.config.get(CONF_DRY_NOTIFY_TITLE, DEFAULT_DRY_NOTIFY_TITLE))
+
+    @property
+    def dry_notify_message(self) -> str:
+        """Return the configured dry-streak notification message."""
+        return str(self.config.get(CONF_DRY_NOTIFY_MESSAGE, DEFAULT_DRY_NOTIFY_MESSAGE))
+
+    @property
+    def dry_notify_cooldown_minutes(self) -> float:
+        """Return dry-streak notification cooldown in minutes."""
+        return _as_float(
+            self.config.get(CONF_DRY_NOTIFY_COOLDOWN_MINUTES),
+            DEFAULT_DRY_NOTIFY_COOLDOWN_MINUTES,
         )
 
     async def _async_update_data(self) -> dict[str, Any]:
@@ -329,7 +379,7 @@ class BandabouRainDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
 
     async def _async_maybe_notify(self, data: dict[str, Any]) -> None:
-        """Send a Home Assistant notification when rain starts."""
+        """Send Home Assistant notifications when configured thresholds are reached."""
         is_raining = self._is_raining(data)
         now = datetime.now(UTC)
         current = data.get("current", {})
@@ -365,21 +415,66 @@ class BandabouRainDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "last_rain_date": self.last_rain_date or "unknown",
             "rain_threshold_mm": self.threshold_mm,
             "dry_day_threshold_mm": self.dry_day_threshold_mm,
+            "dry_streak_threshold_days": self.dry_streak_threshold_days,
             "latitude": self.latitude,
             "longitude": self.longitude,
             "location": self.display_name,
         }
+
+        if should_notify:
+            title = self._render_notification_text(
+                self.notify_title,
+                DEFAULT_NOTIFY_TITLE,
+                context,
+            )
+            message = self._render_notification_text(
+                self.notify_message,
+                DEFAULT_NOTIFY_MESSAGE,
+                context,
+            )
+            if await self._async_send_notifications(title, message):
+                self._last_notification_at = now
+
+        await self._async_maybe_notify_dry_streak(context, now)
+
+    async def _async_maybe_notify_dry_streak(
+        self,
+        context: dict[str, Any],
+        now: datetime,
+    ) -> None:
+        """Send a Home Assistant notification when the dry streak threshold is met."""
+        dry_days = int(context["dry_days"])
+        if dry_days < self.dry_streak_threshold_days:
+            self._dry_streak_notification_sent = False
+            return
+
+        should_notify = (
+            self.notify_on_dry_streak
+            and self.notify_services
+            and not self._dry_streak_notification_sent
+            and not self._is_in_dry_notification_cooldown(now)
+        )
+
+        if not should_notify:
+            return
+
         title = self._render_notification_text(
-            self.notify_title,
-            DEFAULT_NOTIFY_TITLE,
+            self.dry_notify_title,
+            DEFAULT_DRY_NOTIFY_TITLE,
             context,
         )
         message = self._render_notification_text(
-            self.notify_message,
-            DEFAULT_NOTIFY_MESSAGE,
+            self.dry_notify_message,
+            DEFAULT_DRY_NOTIFY_MESSAGE,
             context,
         )
 
+        if await self._async_send_notifications(title, message):
+            self._last_dry_notification_at = now
+            self._dry_streak_notification_sent = True
+
+    async def _async_send_notifications(self, title: str, message: str) -> bool:
+        """Send a notification to all configured notify services."""
         sent = False
         for notify_service in self.notify_services:
             if "." not in notify_service:
@@ -401,8 +496,7 @@ class BandabouRainDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
             sent = True
 
-        if sent:
-            self._last_notification_at = now
+        return sent
 
     def _is_in_notification_cooldown(self, now: datetime) -> bool:
         """Return whether notification cooldown is still active."""
@@ -411,6 +505,17 @@ class BandabouRainDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         cooldown = timedelta(minutes=self.notify_cooldown_minutes)
         return now - self._last_notification_at < cooldown
+
+    def _is_in_dry_notification_cooldown(self, now: datetime) -> bool:
+        """Return whether dry-streak notification cooldown is still active."""
+        if (
+            self._last_dry_notification_at is None
+            or self.dry_notify_cooldown_minutes <= 0
+        ):
+            return False
+
+        cooldown = timedelta(minutes=self.dry_notify_cooldown_minutes)
+        return now - self._last_dry_notification_at < cooldown
 
     def _render_notification_text(
         self,

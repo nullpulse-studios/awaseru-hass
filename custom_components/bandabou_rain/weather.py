@@ -152,6 +152,7 @@ class BandabouRainWeather(
             "last_rain_date": self.coordinator.last_rain_date,
             "rain_threshold_mm": self.coordinator.threshold_mm,
             "dry_day_threshold_mm": self.coordinator.dry_day_threshold_mm,
+            "dry_streak_threshold_days": self.coordinator.dry_streak_threshold_days,
             "rain_next_3_hours": self.coordinator.rain_next_3_hours,
             "max_rain_probability_next_3_hours": (
                 self.coordinator.max_probability_next_3_hours

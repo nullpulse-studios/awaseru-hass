@@ -15,14 +15,22 @@
           "notify_services": "Notification recipients",
           "notify_title": "Notification title",
           "notify_message": "Notification message",
-          "notify_cooldown_minutes": "Notification cooldown in minutes"
+          "notify_cooldown_minutes": "Notification cooldown in minutes",
+          "notify_on_dry_streak": "Send notification when dry streak is reached",
+          "dry_streak_threshold_days": "Dry streak threshold in days",
+          "dry_notify_title": "Dry streak notification title",
+          "dry_notify_message": "Dry streak notification message",
+          "dry_notify_cooldown_minutes": "Dry streak notification cooldown in minutes"
         },
         "data_description": {
           "rain_threshold_mm": "Current precipitation at or above this value counts as raining.",
           "dry_day_threshold_mm": "A completed day below this total precipitation value counts as dry.",
           "notify_services": "Choose one or more notify services, such as mobile app phone services.",
           "notify_message": "Supports placeholders like {current_precipitation}, {rain_next_3_hours}, {dry_days}, and {rain_threshold_mm}.",
-          "notify_cooldown_minutes": "Minimum time between rain-start notifications."
+          "notify_cooldown_minutes": "Minimum time between rain-start notifications.",
+          "dry_streak_threshold_days": "Send a dry-streak notification once this many completed days have been dry.",
+          "dry_notify_message": "Supports placeholders like {dry_days}, {dry_streak_threshold_days}, {last_rain_date}, and {location}.",
+          "dry_notify_cooldown_minutes": "Minimum time between dry-streak notifications."
         }
       }
     },
@@ -45,14 +53,22 @@
           "notify_services": "Notification recipients",
           "notify_title": "Notification title",
           "notify_message": "Notification message",
-          "notify_cooldown_minutes": "Notification cooldown in minutes"
+          "notify_cooldown_minutes": "Notification cooldown in minutes",
+          "notify_on_dry_streak": "Send notification when dry streak is reached",
+          "dry_streak_threshold_days": "Dry streak threshold in days",
+          "dry_notify_title": "Dry streak notification title",
+          "dry_notify_message": "Dry streak notification message",
+          "dry_notify_cooldown_minutes": "Dry streak notification cooldown in minutes"
         },
         "data_description": {
           "rain_threshold_mm": "Current precipitation at or above this value counts as raining.",
           "dry_day_threshold_mm": "A completed day below this total precipitation value counts as dry.",
           "notify_services": "Choose one or more notify services, such as mobile app phone services.",
           "notify_message": "Supports placeholders like {current_precipitation}, {rain_next_3_hours}, {dry_days}, and {rain_threshold_mm}.",
-          "notify_cooldown_minutes": "Minimum time between rain-start notifications."
+          "notify_cooldown_minutes": "Minimum time between rain-start notifications.",
+          "dry_streak_threshold_days": "Send a dry-streak notification once this many completed days have been dry.",
+          "dry_notify_message": "Supports placeholders like {dry_days}, {dry_streak_threshold_days}, {last_rain_date}, and {location}.",
+          "dry_notify_cooldown_minutes": "Minimum time between dry-streak notifications."
         }
       }
     }

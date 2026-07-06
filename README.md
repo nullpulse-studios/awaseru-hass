@@ -53,6 +53,9 @@ You can set:
 - notification title
 - notification message
 - notification cooldown
+- dry-streak notifications when the location has been dry for a configured
+  number of completed days
+- dry-streak notification title, message, and cooldown
 
 Notification messages support these placeholders:
 
@@ -67,6 +70,7 @@ Notification messages support these placeholders:
 {last_rain_date}
 {rain_threshold_mm}
 {dry_day_threshold_mm}
+{dry_streak_threshold_days}
 {latitude}
 {longitude}
 ```

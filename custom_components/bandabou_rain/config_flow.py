@@ -14,19 +14,29 @@ from homeassistant.helpers import selector
 
 from .const import (
     CONF_DRY_DAY_THRESHOLD_MM,
+    CONF_DRY_NOTIFY_COOLDOWN_MINUTES,
+    CONF_DRY_NOTIFY_MESSAGE,
+    CONF_DRY_NOTIFY_TITLE,
+    CONF_DRY_STREAK_THRESHOLD_DAYS,
     CONF_NOTIFY_COOLDOWN_MINUTES,
     CONF_NOTIFY_MESSAGE,
+    CONF_NOTIFY_ON_DRY_STREAK,
     CONF_NOTIFY_ON_RAIN,
     CONF_NOTIFY_SERVICE,
     CONF_NOTIFY_SERVICES,
     CONF_NOTIFY_TITLE,
     CONF_RAIN_THRESHOLD_MM,
     DEFAULT_DRY_DAY_THRESHOLD_MM,
+    DEFAULT_DRY_NOTIFY_COOLDOWN_MINUTES,
+    DEFAULT_DRY_NOTIFY_MESSAGE,
+    DEFAULT_DRY_NOTIFY_TITLE,
+    DEFAULT_DRY_STREAK_THRESHOLD_DAYS,
     DEFAULT_LATITUDE,
     DEFAULT_LONGITUDE,
     DEFAULT_NAME,
     DEFAULT_NOTIFY_COOLDOWN_MINUTES,
     DEFAULT_NOTIFY_MESSAGE,
+    DEFAULT_NOTIFY_ON_DRY_STREAK,
     DEFAULT_NOTIFY_ON_RAIN,
     DEFAULT_NOTIFY_SERVICE,
     DEFAULT_NOTIFY_SERVICES,
@@ -138,6 +148,28 @@ def _entry_schema(defaults: dict[str, Any], notify_options) -> vol.Schema:
                 CONF_NOTIFY_COOLDOWN_MINUTES,
                 default=defaults[CONF_NOTIFY_COOLDOWN_MINUTES],
             ): _number_selector(0, 1440, 5, "min"),
+            vol.Optional(
+                CONF_NOTIFY_ON_DRY_STREAK,
+                default=defaults[CONF_NOTIFY_ON_DRY_STREAK],
+            ): bool,
+            vol.Optional(
+                CONF_DRY_STREAK_THRESHOLD_DAYS,
+                default=defaults[CONF_DRY_STREAK_THRESHOLD_DAYS],
+            ): _number_selector(1, 60, 1, "days"),
+            vol.Optional(
+                CONF_DRY_NOTIFY_TITLE,
+                default=defaults[CONF_DRY_NOTIFY_TITLE],
+            ): selector.TextSelector(),
+            vol.Optional(
+                CONF_DRY_NOTIFY_MESSAGE,
+                default=defaults[CONF_DRY_NOTIFY_MESSAGE],
+            ): selector.TextSelector(
+                selector.TextSelectorConfig(multiline=True),
+            ),
+            vol.Optional(
+                CONF_DRY_NOTIFY_COOLDOWN_MINUTES,
+                default=defaults[CONF_DRY_NOTIFY_COOLDOWN_MINUTES],
+            ): _number_selector(0, 10080, 60, "min"),
         }
     )
 
@@ -182,6 +214,11 @@ class BandabouRainConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             CONF_NOTIFY_TITLE: DEFAULT_NOTIFY_TITLE,
             CONF_NOTIFY_MESSAGE: DEFAULT_NOTIFY_MESSAGE,
             CONF_NOTIFY_COOLDOWN_MINUTES: DEFAULT_NOTIFY_COOLDOWN_MINUTES,
+            CONF_NOTIFY_ON_DRY_STREAK: DEFAULT_NOTIFY_ON_DRY_STREAK,
+            CONF_DRY_STREAK_THRESHOLD_DAYS: DEFAULT_DRY_STREAK_THRESHOLD_DAYS,
+            CONF_DRY_NOTIFY_TITLE: DEFAULT_DRY_NOTIFY_TITLE,
+            CONF_DRY_NOTIFY_MESSAGE: DEFAULT_DRY_NOTIFY_MESSAGE,
+            CONF_DRY_NOTIFY_COOLDOWN_MINUTES: DEFAULT_DRY_NOTIFY_COOLDOWN_MINUTES,
         }
         return self.async_show_form(
             step_id="user",
@@ -238,6 +275,26 @@ class BandabouRainOptionsFlow(config_entries.OptionsFlow):
             CONF_NOTIFY_COOLDOWN_MINUTES: merged.get(
                 CONF_NOTIFY_COOLDOWN_MINUTES,
                 DEFAULT_NOTIFY_COOLDOWN_MINUTES,
+            ),
+            CONF_NOTIFY_ON_DRY_STREAK: merged.get(
+                CONF_NOTIFY_ON_DRY_STREAK,
+                DEFAULT_NOTIFY_ON_DRY_STREAK,
+            ),
+            CONF_DRY_STREAK_THRESHOLD_DAYS: merged.get(
+                CONF_DRY_STREAK_THRESHOLD_DAYS,
+                DEFAULT_DRY_STREAK_THRESHOLD_DAYS,
+            ),
+            CONF_DRY_NOTIFY_TITLE: merged.get(
+                CONF_DRY_NOTIFY_TITLE,
+                DEFAULT_DRY_NOTIFY_TITLE,
+            ),
+            CONF_DRY_NOTIFY_MESSAGE: merged.get(
+                CONF_DRY_NOTIFY_MESSAGE,
+                DEFAULT_DRY_NOTIFY_MESSAGE,
+            ),
+            CONF_DRY_NOTIFY_COOLDOWN_MINUTES: merged.get(
+                CONF_DRY_NOTIFY_COOLDOWN_MINUTES,
+                DEFAULT_DRY_NOTIFY_COOLDOWN_MINUTES,
             ),
         }
         return self.async_show_form(

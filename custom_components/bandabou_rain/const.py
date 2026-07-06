@@ -24,6 +24,15 @@ DEFAULT_NOTIFY_MESSAGE = (
     "Dry days before this: {dry_days}."
 )
 DEFAULT_NOTIFY_COOLDOWN_MINUTES = 120
+DEFAULT_NOTIFY_ON_DRY_STREAK = True
+DEFAULT_DRY_STREAK_THRESHOLD_DAYS = 3
+DEFAULT_DRY_NOTIFY_TITLE = "Dry streak in Bandabou"
+DEFAULT_DRY_NOTIFY_MESSAGE = (
+    "Bandabou has been dry for {dry_days} completed days. "
+    "The dry-streak notification threshold is {dry_streak_threshold_days} days. "
+    "Last rain date: {last_rain_date}."
+)
+DEFAULT_DRY_NOTIFY_COOLDOWN_MINUTES = 1440
 DEFAULT_UPDATE_INTERVAL_SECONDS = 300
 
 CONF_RAIN_THRESHOLD_MM = "rain_threshold_mm"
@@ -34,3 +43,8 @@ CONF_NOTIFY_SERVICES = "notify_services"
 CONF_NOTIFY_TITLE = "notify_title"
 CONF_NOTIFY_MESSAGE = "notify_message"
 CONF_NOTIFY_COOLDOWN_MINUTES = "notify_cooldown_minutes"
+CONF_NOTIFY_ON_DRY_STREAK = "notify_on_dry_streak"
+CONF_DRY_STREAK_THRESHOLD_DAYS = "dry_streak_threshold_days"
+CONF_DRY_NOTIFY_TITLE = "dry_notify_title"
+CONF_DRY_NOTIFY_MESSAGE = "dry_notify_message"
+CONF_DRY_NOTIFY_COOLDOWN_MINUTES = "dry_notify_cooldown_minutes"

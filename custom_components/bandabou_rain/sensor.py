@@ -48,6 +48,7 @@ SENSORS: tuple[BandabouRainSensorEntityDescription, ...] = (
             "current_showers_mm": coordinator.current_showers,
             "rain_threshold_mm": coordinator.threshold_mm,
             "dry_day_threshold_mm": coordinator.dry_day_threshold_mm,
+            "dry_streak_threshold_days": coordinator.dry_streak_threshold_days,
         },
     ),
     BandabouRainSensorEntityDescription(
@@ -77,6 +78,7 @@ SENSORS: tuple[BandabouRainSensorEntityDescription, ...] = (
         attrs_fn=lambda coordinator: {
             "rain_threshold_mm": coordinator.threshold_mm,
             "dry_day_threshold_mm": coordinator.dry_day_threshold_mm,
+            "dry_streak_threshold_days": coordinator.dry_streak_threshold_days,
             "last_rain_date": coordinator.last_rain_date,
             "daily_history": coordinator.daily_history,
         },
