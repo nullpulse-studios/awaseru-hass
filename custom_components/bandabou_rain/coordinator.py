@@ -382,17 +382,6 @@ class BandabouRainDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Send Home Assistant notifications when configured thresholds are reached."""
         is_raining = self._is_raining(data)
         now = datetime.now(UTC)
-        current = data.get("current", {})
-        hourly = data.get("hourly", {})
-        next_3_hours = round(
-            sum(_as_float(value) for value in hourly.get("precipitation", [])[:3]),
-            2,
-        )
-        probabilities = [
-            _as_float(value)
-            for value in hourly.get("precipitation_probability", [])[:3]
-        ]
-        max_probability = round(max(probabilities, default=0.0), 0)
         should_notify = (
             self.notify_on_rain
             and self._last_is_raining is False
@@ -402,24 +391,7 @@ class BandabouRainDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self._last_is_raining = is_raining
 
-        if not should_notify:
-            return
-
-        context = {
-            "current_precipitation": _as_float(current.get("precipitation")),
-            "current_rain": _as_float(current.get("rain")),
-            "current_showers": _as_float(current.get("showers")),
-            "rain_next_3_hours": next_3_hours,
-            "max_rain_probability_next_3_hours": max_probability,
-            "dry_days": self.dry_days,
-            "last_rain_date": self.last_rain_date or "unknown",
-            "rain_threshold_mm": self.threshold_mm,
-            "dry_day_threshold_mm": self.dry_day_threshold_mm,
-            "dry_streak_threshold_days": self.dry_streak_threshold_days,
-            "latitude": self.latitude,
-            "longitude": self.longitude,
-            "location": self.display_name,
-        }
+        context = self._notification_context(data)
 
         if should_notify:
             title = self._render_notification_text(
@@ -473,6 +445,42 @@ class BandabouRainDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._last_dry_notification_at = now
             self._dry_streak_notification_sent = True
 
+    async def async_send_test_rain_notification(self) -> bool:
+        """Send a test rain-start notification."""
+        context = self._notification_context(self.data or {})
+        title = "[TEST] " + self._render_notification_text(
+            self.notify_title,
+            DEFAULT_NOTIFY_TITLE,
+            context,
+        )
+        message = (
+            "This is a test notification from Bandabou Rain.\n\n"
+            + self._render_notification_text(
+                self.notify_message,
+                DEFAULT_NOTIFY_MESSAGE,
+                context,
+            )
+        )
+        return await self._async_send_notifications(title, message)
+
+    async def async_send_test_dry_streak_notification(self) -> bool:
+        """Send a test dry-streak notification."""
+        context = self._notification_context(self.data or {})
+        title = "[TEST] " + self._render_notification_text(
+            self.dry_notify_title,
+            DEFAULT_DRY_NOTIFY_TITLE,
+            context,
+        )
+        message = (
+            "This is a test notification from Bandabou Rain.\n\n"
+            + self._render_notification_text(
+                self.dry_notify_message,
+                DEFAULT_DRY_NOTIFY_MESSAGE,
+                context,
+            )
+        )
+        return await self._async_send_notifications(title, message)
+
     async def _async_send_notifications(self, title: str, message: str) -> bool:
         """Send a notification to all configured notify services."""
         sent = False
@@ -497,6 +505,36 @@ class BandabouRainDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             sent = True
 
         return sent
+
+    def _notification_context(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Return values used in notification message templates."""
+        current = data.get("current", {})
+        hourly = data.get("hourly", {})
+        next_3_hours = round(
+            sum(_as_float(value) for value in hourly.get("precipitation", [])[:3]),
+            2,
+        )
+        probabilities = [
+            _as_float(value)
+            for value in hourly.get("precipitation_probability", [])[:3]
+        ]
+        max_probability = round(max(probabilities, default=0.0), 0)
+
+        return {
+            "current_precipitation": _as_float(current.get("precipitation")),
+            "current_rain": _as_float(current.get("rain")),
+            "current_showers": _as_float(current.get("showers")),
+            "rain_next_3_hours": next_3_hours,
+            "max_rain_probability_next_3_hours": max_probability,
+            "dry_days": self.dry_days,
+            "last_rain_date": self.last_rain_date or "unknown",
+            "rain_threshold_mm": self.threshold_mm,
+            "dry_day_threshold_mm": self.dry_day_threshold_mm,
+            "dry_streak_threshold_days": self.dry_streak_threshold_days,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "location": self.display_name,
+        }
 
     def _is_in_notification_cooldown(self, now: datetime) -> bool:
         """Return whether notification cooldown is still active."""

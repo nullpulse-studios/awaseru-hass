@@ -5,7 +5,12 @@ from __future__ import annotations
 from homeassistant.const import Platform
 
 DOMAIN = "bandabou_rain"
-PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.WEATHER]
+PLATFORMS = [
+    Platform.SENSOR,
+    Platform.BINARY_SENSOR,
+    Platform.WEATHER,
+    Platform.BUTTON,
+]
 
 DEFAULT_NAME = "Bandabou Rain"
 DEFAULT_LATITUDE = 12.267

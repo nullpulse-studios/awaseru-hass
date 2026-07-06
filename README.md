@@ -40,6 +40,8 @@ this repository must be public and added as a custom repository.
 - `sensor.bandabou_rain_max_rain_probability_next_3_hours`
 - `sensor.bandabou_rain_dry_days`
 - `weather.bandabou_rain`
+- `button.bandabou_rain_test_rain_notification`
+- `button.bandabou_rain_test_dry_streak_notification`
 
 The integration can call a Home Assistant notify service when rain starts.
 Notification settings are configurable from **Settings > Devices & services >
@@ -56,6 +58,11 @@ You can set:
 - dry-streak notifications when the location has been dry for a configured
   number of completed days
 - dry-streak notification title, message, and cooldown
+
+You can test delivery from the integration's device page by pressing:
+
+- **Bandabou Rain Test Rain Notification**
+- **Bandabou Rain Test Dry Streak Notification**
 
 Notification messages support these placeholders:
 
