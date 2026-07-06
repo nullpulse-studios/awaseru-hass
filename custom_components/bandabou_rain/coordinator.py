@@ -14,14 +14,24 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .api import OpenMeteoClient, OpenMeteoError
 from .const import (
+    CONF_DRY_DAY_THRESHOLD_MM,
+    CONF_NOTIFY_COOLDOWN_MINUTES,
+    CONF_NOTIFY_MESSAGE,
     CONF_NOTIFY_ON_RAIN,
     CONF_NOTIFY_SERVICE,
+    CONF_NOTIFY_SERVICES,
+    CONF_NOTIFY_TITLE,
     CONF_RAIN_THRESHOLD_MM,
+    DEFAULT_DRY_DAY_THRESHOLD_MM,
     DEFAULT_LATITUDE,
     DEFAULT_LONGITUDE,
     DEFAULT_NAME,
+    DEFAULT_NOTIFY_COOLDOWN_MINUTES,
+    DEFAULT_NOTIFY_MESSAGE,
     DEFAULT_NOTIFY_ON_RAIN,
     DEFAULT_NOTIFY_SERVICE,
+    DEFAULT_NOTIFY_SERVICES,
+    DEFAULT_NOTIFY_TITLE,
     DEFAULT_RAIN_THRESHOLD_MM,
     DEFAULT_UPDATE_INTERVAL_SECONDS,
     DOMAIN,
@@ -78,6 +88,7 @@ class BandabouRainDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.entry = entry
         self._client = OpenMeteoClient(hass, self.latitude, self.longitude)
         self._last_is_raining: bool | None = None
+        self._last_notification_at: datetime | None = None
 
         super().__init__(
             hass,
@@ -115,14 +126,48 @@ class BandabouRainDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
 
     @property
+    def dry_day_threshold_mm(self) -> float:
+        """Return configured dry-day threshold."""
+        return _as_float(
+            self.config.get(CONF_DRY_DAY_THRESHOLD_MM),
+            DEFAULT_DRY_DAY_THRESHOLD_MM,
+        )
+
+    @property
     def notify_on_rain(self) -> bool:
         """Return whether rain notifications are enabled."""
         return bool(self.config.get(CONF_NOTIFY_ON_RAIN, DEFAULT_NOTIFY_ON_RAIN))
 
     @property
-    def notify_service(self) -> str:
-        """Return the configured notify service."""
-        return str(self.config.get(CONF_NOTIFY_SERVICE, DEFAULT_NOTIFY_SERVICE))
+    def notify_services(self) -> list[str]:
+        """Return configured notify services."""
+        value = self.config.get(
+            CONF_NOTIFY_SERVICES,
+            self.config.get(CONF_NOTIFY_SERVICE, DEFAULT_NOTIFY_SERVICE),
+        )
+        if isinstance(value, str):
+            return [value] if value else []
+        if isinstance(value, list):
+            return [str(item) for item in value if str(item)]
+        return list(DEFAULT_NOTIFY_SERVICES)
+
+    @property
+    def notify_title(self) -> str:
+        """Return the configured notification title."""
+        return str(self.config.get(CONF_NOTIFY_TITLE, DEFAULT_NOTIFY_TITLE))
+
+    @property
+    def notify_message(self) -> str:
+        """Return the configured notification message."""
+        return str(self.config.get(CONF_NOTIFY_MESSAGE, DEFAULT_NOTIFY_MESSAGE))
+
+    @property
+    def notify_cooldown_minutes(self) -> float:
+        """Return notification cooldown in minutes."""
+        return _as_float(
+            self.config.get(CONF_NOTIFY_COOLDOWN_MINUTES),
+            DEFAULT_NOTIFY_COOLDOWN_MINUTES,
+        )
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from Open-Meteo."""
@@ -233,7 +278,7 @@ class BandabouRainDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     "showers_sum": _as_float(
                         showers[index] if index < len(showers) else None
                     ),
-                    "is_dry": precipitation_sum < self.threshold_mm,
+                    "is_dry": precipitation_sum < self.dry_day_threshold_mm,
                 }
             )
 
@@ -286,6 +331,7 @@ class BandabouRainDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_maybe_notify(self, data: dict[str, Any]) -> None:
         """Send a Home Assistant notification when rain starts."""
         is_raining = self._is_raining(data)
+        now = datetime.now(UTC)
         current = data.get("current", {})
         hourly = data.get("hourly", {})
         next_3_hours = round(
@@ -301,29 +347,83 @@ class BandabouRainDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.notify_on_rain
             and self._last_is_raining is False
             and is_raining
-            and "." in self.notify_service
+            and self.notify_services
+            and not self._is_in_notification_cooldown(now)
         )
         self._last_is_raining = is_raining
 
         if not should_notify:
             return
 
-        domain, service = self.notify_service.split(".", 1)
-        if not self.hass.services.has_service(domain, service):
-            return
-
-        await self.hass.services.async_call(
-            domain,
-            service,
-            {
-                "title": "Rain in Bandabou",
-                "message": (
-                    "It looks like rain has started in Bandabou. "
-                    "Current precipitation is "
-                    f"{_as_float(current.get('precipitation')):.1f} mm. "
-                    f"Next 3 hours: {next_3_hours:.1f} mm, "
-                    f"max probability {max_probability:.0f}%."
-                ),
-            },
-            blocking=False,
+        context = {
+            "current_precipitation": _as_float(current.get("precipitation")),
+            "current_rain": _as_float(current.get("rain")),
+            "current_showers": _as_float(current.get("showers")),
+            "rain_next_3_hours": next_3_hours,
+            "max_rain_probability_next_3_hours": max_probability,
+            "dry_days": self.dry_days,
+            "last_rain_date": self.last_rain_date or "unknown",
+            "rain_threshold_mm": self.threshold_mm,
+            "dry_day_threshold_mm": self.dry_day_threshold_mm,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "location": self.display_name,
+        }
+        title = self._render_notification_text(
+            self.notify_title,
+            DEFAULT_NOTIFY_TITLE,
+            context,
         )
+        message = self._render_notification_text(
+            self.notify_message,
+            DEFAULT_NOTIFY_MESSAGE,
+            context,
+        )
+
+        sent = False
+        for notify_service in self.notify_services:
+            if "." not in notify_service:
+                continue
+
+            domain, service = notify_service.split(".", 1)
+            if not self.hass.services.has_service(domain, service):
+                _LOGGER.warning("Notify service %s is not available", notify_service)
+                continue
+
+            await self.hass.services.async_call(
+                domain,
+                service,
+                {
+                    "title": title,
+                    "message": message,
+                },
+                blocking=False,
+            )
+            sent = True
+
+        if sent:
+            self._last_notification_at = now
+
+    def _is_in_notification_cooldown(self, now: datetime) -> bool:
+        """Return whether notification cooldown is still active."""
+        if self._last_notification_at is None or self.notify_cooldown_minutes <= 0:
+            return False
+
+        cooldown = timedelta(minutes=self.notify_cooldown_minutes)
+        return now - self._last_notification_at < cooldown
+
+    def _render_notification_text(
+        self,
+        template: str,
+        fallback: str,
+        context: dict[str, Any],
+    ) -> str:
+        """Render a notification format string with a safe fallback."""
+        try:
+            return template.format(**context)
+        except (IndexError, KeyError, ValueError):
+            _LOGGER.warning(
+                "Invalid notification template %r; using default text",
+                template,
+            )
+            return fallback.format(**context)

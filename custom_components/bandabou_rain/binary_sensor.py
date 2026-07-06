@@ -60,7 +60,8 @@ class BandabouRainingBinarySensor(
     def extra_state_attributes(self) -> dict[str, float]:
         """Return useful rain detection values."""
         return {
-            "threshold_mm": self.coordinator.threshold_mm,
+            "rain_threshold_mm": self.coordinator.threshold_mm,
+            "dry_day_threshold_mm": self.coordinator.dry_day_threshold_mm,
             "current_precipitation_mm": self.coordinator.current_precipitation,
             "current_rain_mm": self.coordinator.current_rain,
             "current_showers_mm": self.coordinator.current_showers,

@@ -10,8 +10,19 @@
           "latitude": "Latitude",
           "longitude": "Longitude",
           "rain_threshold_mm": "Rain threshold in mm",
+          "dry_day_threshold_mm": "Dry-day threshold in mm",
           "notify_on_rain": "Send notification when rain starts",
-          "notify_service": "Notify service"
+          "notify_services": "Notification recipients",
+          "notify_title": "Notification title",
+          "notify_message": "Notification message",
+          "notify_cooldown_minutes": "Notification cooldown in minutes"
+        },
+        "data_description": {
+          "rain_threshold_mm": "Current precipitation at or above this value counts as raining.",
+          "dry_day_threshold_mm": "A completed day below this total precipitation value counts as dry.",
+          "notify_services": "Choose one or more notify services, such as mobile app phone services.",
+          "notify_message": "Supports placeholders like {current_precipitation}, {rain_next_3_hours}, {dry_days}, and {rain_threshold_mm}.",
+          "notify_cooldown_minutes": "Minimum time between rain-start notifications."
         }
       }
     },
@@ -29,8 +40,19 @@
           "latitude": "Latitude",
           "longitude": "Longitude",
           "rain_threshold_mm": "Rain threshold in mm",
+          "dry_day_threshold_mm": "Dry-day threshold in mm",
           "notify_on_rain": "Send notification when rain starts",
-          "notify_service": "Notify service"
+          "notify_services": "Notification recipients",
+          "notify_title": "Notification title",
+          "notify_message": "Notification message",
+          "notify_cooldown_minutes": "Notification cooldown in minutes"
+        },
+        "data_description": {
+          "rain_threshold_mm": "Current precipitation at or above this value counts as raining.",
+          "dry_day_threshold_mm": "A completed day below this total precipitation value counts as dry.",
+          "notify_services": "Choose one or more notify services, such as mobile app phone services.",
+          "notify_message": "Supports placeholders like {current_precipitation}, {rain_next_3_hours}, {dry_days}, and {rain_threshold_mm}.",
+          "notify_cooldown_minutes": "Minimum time between rain-start notifications."
         }
       }
     }

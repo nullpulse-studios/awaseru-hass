@@ -37,17 +37,33 @@ this repository must be public and added as a custom repository.
 - `weather.bandabou_rain`
 
 The integration can call a Home Assistant notify service when rain starts.
-The default is:
+Notification settings are configurable from **Settings > Devices & services >
+Bandabou Rain > Configure**.
+
+You can set:
+
+- rain detection threshold
+- dry-day threshold
+- one or more notify recipients, including `notify.mobile_app_*` phone services
+- notification title
+- notification message
+- notification cooldown
+
+Notification messages support these placeholders:
 
 ```text
-notify.notify
-```
-
-If you want a specific phone, use your mobile app notify service instead, for
-example:
-
-```text
-notify.mobile_app_your_phone
+{location}
+{current_precipitation}
+{current_rain}
+{current_showers}
+{rain_next_3_hours}
+{max_rain_probability_next_3_hours}
+{dry_days}
+{last_rain_date}
+{rain_threshold_mm}
+{dry_day_threshold_mm}
+{latitude}
+{longitude}
 ```
 
 ## Dashboard
