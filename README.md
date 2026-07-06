@@ -9,6 +9,11 @@ coordinates:
 - Latitude: `12.267`
 - Longitude: `-69.100`
 
+The integration includes local Home Assistant brand assets:
+
+- `custom_components/bandabou_rain/brand/icon.png`
+- `custom_components/bandabou_rain/brand/logo.png`
+
 ## Important HACS Note
 
 HACS cannot install from private GitHub repositories. To install through HACS,
