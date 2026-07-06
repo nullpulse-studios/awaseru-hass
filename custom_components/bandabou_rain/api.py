@@ -27,15 +27,18 @@ class OpenMeteoClient:
         self._longitude = longitude
 
     async def async_get_forecast(self) -> dict[str, Any]:
-        """Fetch the current and 24-hour rain forecast."""
+        """Fetch the current rain state, forecast, and recent daily rain history."""
         params = {
             "latitude": self._latitude,
             "longitude": self._longitude,
             "current": "precipitation,rain,showers,weather_code",
             "hourly": "precipitation,precipitation_probability,rain,showers",
+            "daily": "precipitation_sum,rain_sum,showers_sum",
             "forecast_hours": 24,
-            "timezone": "UTC",
-            "timeformat": "unixtime",
+            "forecast_days": 1,
+            "past_days": 31,
+            "timezone": "America/Curacao",
+            "timeformat": "iso8601",
         }
 
         try:
@@ -49,7 +52,7 @@ class OpenMeteoClient:
         except (asyncio.TimeoutError, ClientError) as err:
             raise OpenMeteoError(f"Open-Meteo request failed: {err}") from err
 
-        if "current" not in data or "hourly" not in data:
+        if "current" not in data or "hourly" not in data or "daily" not in data:
             raise OpenMeteoError("Open-Meteo response did not include forecast data")
 
         return data

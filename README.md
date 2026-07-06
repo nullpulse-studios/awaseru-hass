@@ -33,6 +33,7 @@ this repository must be public and added as a custom repository.
 - `sensor.bandabou_rain_current_precipitation`
 - `sensor.bandabou_rain_rain_next_3_hours`
 - `sensor.bandabou_rain_max_rain_probability_next_3_hours`
+- `sensor.bandabou_rain_dry_days`
 
 The integration can call a Home Assistant notify service when rain starts.
 The default is:
@@ -50,7 +51,16 @@ notify.mobile_app_your_phone
 
 ## Dashboard Graph
 
-The integration exposes a 24-hour forecast on the current precipitation
+For a simple dry-days dashboard widget, add a normal **Tile** card for:
+
+```text
+sensor.bandabou_rain_dry_days
+```
+
+This sensor counts consecutive completed local Curacao days without rain,
+ending yesterday. The dry/wet threshold uses the configured rain threshold.
+
+The integration also exposes a 24-hour forecast on the current precipitation
 sensor's `forecast` attribute. For a future rain graph, install
 `apexcharts-card` from HACS and add this manual Lovelace card:
 

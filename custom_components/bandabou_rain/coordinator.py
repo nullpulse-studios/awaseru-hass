@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 import logging
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_LATITUDE, CONF_LONGITUDE, CONF_NAME
@@ -27,6 +28,7 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+LOCAL_TZ = ZoneInfo("America/Curacao")
 
 
 def _as_float(value: Any, default: float = 0.0) -> float:
@@ -35,6 +37,37 @@ def _as_float(value: Any, default: float = 0.0) -> float:
         return float(value)
     except (TypeError, ValueError):
         return default
+
+
+def _as_timestamp(value: Any) -> float:
+    """Convert an Open-Meteo timestamp to a Unix timestamp."""
+    if isinstance(value, (int, float)):
+        return float(value)
+
+    text = str(value)
+    try:
+        if len(text) == 10:
+            parsed = datetime.combine(date.fromisoformat(text), time.min, LOCAL_TZ)
+        else:
+            parsed = datetime.fromisoformat(text)
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=LOCAL_TZ)
+    except ValueError:
+        return 0.0
+
+    return parsed.timestamp()
+
+
+def _as_local_date(value: Any) -> date | None:
+    """Convert an Open-Meteo date or timestamp to a Curacao local date."""
+    if isinstance(value, (int, float)):
+        return datetime.fromtimestamp(float(value), tz=UTC).astimezone(LOCAL_TZ).date()
+
+    text = str(value)
+    try:
+        return date.fromisoformat(text[:10])
+    except ValueError:
+        return None
 
 
 class BandabouRainDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -112,6 +145,11 @@ class BandabouRainDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return (self.data or {}).get("hourly", {})
 
     @property
+    def daily(self) -> dict[str, list[Any]]:
+        """Return recent daily rain totals."""
+        return (self.data or {}).get("daily", {})
+
+    @property
     def current_precipitation(self) -> float:
         """Return current precipitation in millimeters."""
         return _as_float(self.current.get("precipitation"))
@@ -145,6 +183,58 @@ class BandabouRainDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return round(max(probabilities, default=0.0), 0)
 
     @property
+    def dry_days(self) -> int:
+        """Return the consecutive completed days without rain."""
+        streak = 0
+        for point in reversed(self.daily_history):
+            if not point["is_dry"]:
+                break
+            streak += 1
+        return streak
+
+    @property
+    def last_rain_date(self) -> str | None:
+        """Return the most recent completed day with rain."""
+        for point in reversed(self.daily_history):
+            if not point["is_dry"]:
+                return str(point["date"])
+        return None
+
+    @property
+    def daily_history(self) -> list[dict[str, Any]]:
+        """Return completed local-day rain history for dashboard cards."""
+        daily = self.daily
+        times = daily.get("time", [])
+        precipitation = daily.get("precipitation_sum", [])
+        rain = daily.get("rain_sum", [])
+        showers = daily.get("showers_sum", [])
+        today = datetime.now(LOCAL_TZ).date()
+
+        points: list[dict[str, Any]] = []
+        for index, day_value in enumerate(times):
+            local_day = _as_local_date(day_value)
+            if local_day is None or local_day >= today:
+                continue
+
+            precipitation_sum = _as_float(
+                precipitation[index] if index < len(precipitation) else None
+            )
+            points.append(
+                {
+                    "date": local_day.isoformat(),
+                    "timestamp": _as_timestamp(day_value),
+                    "precipitation_sum": precipitation_sum,
+                    "rain_sum": _as_float(rain[index] if index < len(rain) else None),
+                    "showers_sum": _as_float(
+                        showers[index] if index < len(showers) else None
+                    ),
+                    "is_dry": precipitation_sum < self.threshold_mm,
+                }
+            )
+
+        return points
+
+    @property
     def forecast(self) -> list[dict[str, Any]]:
         """Return forecast points for dashboard cards."""
         hourly = self.hourly
@@ -156,7 +246,7 @@ class BandabouRainDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         points: list[dict[str, Any]] = []
         for index, timestamp in enumerate(times):
-            timestamp_float = _as_float(timestamp)
+            timestamp_float = _as_timestamp(timestamp)
             points.append(
                 {
                     "datetime": datetime.fromtimestamp(
