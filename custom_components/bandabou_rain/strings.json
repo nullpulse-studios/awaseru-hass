@@ -1,0 +1,38 @@
+{
+  "title": "Bandabou Rain",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Bandabou Rain",
+        "description": "Configure rain monitoring for Bandabou, Curacao.",
+        "data": {
+          "name": "Name",
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "rain_threshold_mm": "Rain threshold in mm",
+          "notify_on_rain": "Send notification when rain starts",
+          "notify_service": "Notify service"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This location is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Bandabou Rain options",
+        "description": "Update rain monitoring settings.",
+        "data": {
+          "name": "Name",
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "rain_threshold_mm": "Rain threshold in mm",
+          "notify_on_rain": "Send notification when rain starts",
+          "notify_service": "Notify service"
+        }
+      }
+    }
+  }
+}

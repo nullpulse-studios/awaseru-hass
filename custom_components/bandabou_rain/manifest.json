@@ -1,0 +1,12 @@
+{
+  "domain": "bandabou_rain",
+  "name": "Bandabou Rain",
+  "codeowners": ["@nullpulse-studios"],
+  "config_flow": true,
+  "documentation": "https://github.com/nullpulse-studios/awaseru-hass",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/nullpulse-studios/awaseru-hass/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}
