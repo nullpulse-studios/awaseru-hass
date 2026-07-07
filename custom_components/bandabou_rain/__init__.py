@@ -2,15 +2,28 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
+try:
+    from homeassistant.components.http import StaticPathConfig
+except ImportError:  # pragma: no cover - compatibility with older HA versions
+    StaticPathConfig = None
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN, PLATFORMS
 from .coordinator import BandabouRainDataUpdateCoordinator
 
+STATIC_PATH = f"/{DOMAIN}"
+STATIC_REGISTERED = f"{DOMAIN}_static_registered"
+WWW_PATH = Path(__file__).parent / "www"
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Bandabou Rain from a config entry."""
+    await _async_register_static_path(hass)
+
     coordinator = BandabouRainDataUpdateCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
 
@@ -32,3 +45,21 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Reload the entry when options change."""
     await hass.config_entries.async_reload(entry.entry_id)
+
+
+async def _async_register_static_path(hass: HomeAssistant) -> None:
+    """Serve bundled dashboard card assets."""
+    if hass.data.get(STATIC_REGISTERED):
+        return
+
+    if StaticPathConfig is not None and hasattr(
+        hass.http,
+        "async_register_static_paths",
+    ):
+        await hass.http.async_register_static_paths(
+            [StaticPathConfig(STATIC_PATH, str(WWW_PATH), True)]
+        )
+    else:
+        hass.http.register_static_path(STATIC_PATH, str(WWW_PATH), True)
+
+    hass.data[STATIC_REGISTERED] = True

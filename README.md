@@ -97,10 +97,32 @@ forecast_type: hourly
 round_temperature: true
 ```
 
+The integration also includes its own rain forecast graph card. No other HACS
+extension is needed. After installing or updating the integration and restarting
+Home Assistant, add this dashboard resource:
+
+```text
+/bandabou_rain/bandabou-rain-card.js
+```
+
+Set the resource type to **JavaScript module**.
+
 For a compact dashboard, paste the example from:
 
 ```text
 examples/dashboard-weather-stack.yaml
+```
+
+Or add the graph card manually:
+
+```yaml
+type: custom:bandabou-rain-card
+entity: sensor.bandabou_rain_current_precipitation
+dry_days_entity: sensor.bandabou_rain_dry_days
+rain_next_3_hours_entity: sensor.bandabou_rain_rain_next_3_hours
+probability_entity: sensor.bandabou_rain_max_rain_probability_next_3_hours
+title: Bandabou Rain
+hours_to_show: 24
 ```
 
 For a simple dry-days widget, add a normal **Tile** card for:
@@ -111,59 +133,3 @@ sensor.bandabou_rain_dry_days
 
 This sensor counts consecutive completed local Curacao days without rain,
 ending yesterday. The dry/wet threshold uses the configured rain threshold.
-
-The integration also exposes a 24-hour rain forecast on the current
-precipitation sensor's `forecast` attribute. For a rain graph, install
-`apexcharts-card` from HACS and add this manual Lovelace card:
-
-```yaml
-type: custom:apexcharts-card
-graph_span: 24h
-header:
-  show: true
-  title: Bandabou Rain Forecast
-  show_states: true
-now:
-  show: true
-  label: Now
-yaxis:
-  - id: rain
-    min: 0
-    decimals: 1
-    apex_config:
-      title:
-        text: mm
-  - id: probability
-    min: 0
-    max: 100
-    opposite: true
-    decimals: 0
-    apex_config:
-      title:
-        text: "%"
-series:
-  - entity: sensor.bandabou_rain_current_precipitation
-    name: Rain
-    type: column
-    color: "#2f80ed"
-    unit: mm
-    yaxis_id: rain
-    data_generator: |
-      const forecast = entity.attributes.forecast || [];
-      return forecast.map((point) => [
-        Number(point.timestamp) * 1000,
-        Number(point.precipitation) || 0
-      ]);
-  - entity: sensor.bandabou_rain_current_precipitation
-    name: Probability
-    type: line
-    color: "#f2994a"
-    unit: "%"
-    yaxis_id: probability
-    data_generator: |
-      const forecast = entity.attributes.forecast || [];
-      return forecast.map((point) => [
-        Number(point.timestamp) * 1000,
-        Number(point.precipitation_probability) || 0
-      ]);
-```

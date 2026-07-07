@@ -7,11 +7,10 @@ cards:
     show_forecast: true
     forecast_type: hourly
     round_temperature: true
-  - type: tile
-    entity: sensor.bandabou_rain_dry_days
-    name: Dry days
-    icon: mdi:white-balance-sunny
-  - type: tile
-    entity: sensor.bandabou_rain_rain_next_3_hours
-    name: Rain next 3 hours
-    icon: mdi:weather-pouring
+  - type: custom:bandabou-rain-card
+    entity: sensor.bandabou_rain_current_precipitation
+    dry_days_entity: sensor.bandabou_rain_dry_days
+    rain_next_3_hours_entity: sensor.bandabou_rain_rain_next_3_hours
+    probability_entity: sensor.bandabou_rain_max_rain_probability_next_3_hours
+    title: Bandabou Rain
+    hours_to_show: 24
